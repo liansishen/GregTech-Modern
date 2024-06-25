@@ -3,6 +3,7 @@ package com.gregtechceu.gtceu.api.pattern;
 import com.gregtechceu.gtceu.api.block.ActiveBlock;
 import com.gregtechceu.gtceu.api.block.MetaMachineBlock;
 import com.gregtechceu.gtceu.api.machine.IMachineBlockEntity;
+import com.gregtechceu.gtceu.api.machine.MachineDefinition;
 import com.gregtechceu.gtceu.api.machine.MetaMachine;
 import com.gregtechceu.gtceu.api.machine.feature.multiblock.IMultiController;
 import com.gregtechceu.gtceu.api.machine.feature.multiblock.IMultiPart;
@@ -13,6 +14,9 @@ import com.gregtechceu.gtceu.api.pattern.predicates.SimplePredicate;
 import com.gregtechceu.gtceu.api.pattern.util.PatternMatchContext;
 import com.gregtechceu.gtceu.api.pattern.util.RelativeDirection;
 
+import com.gregtechceu.gtceu.common.block.BatteryBlock;
+import com.gregtechceu.gtceu.common.block.CoilBlock;
+import com.gregtechceu.gtceu.common.machine.multiblock.part.EnergyHatchPartMachine;
 import com.lowdragmc.lowdraglib.utils.BlockInfo;
 
 import net.minecraft.core.BlockPos;
@@ -24,6 +28,7 @@ import net.minecraft.world.item.BlockItem;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.context.BlockPlaceContext;
 import net.minecraft.world.level.Level;
+import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.block.state.properties.BlockStateProperties;
@@ -44,6 +49,10 @@ import java.lang.reflect.Array;
 import java.util.*;
 import java.util.function.BiFunction;
 import java.util.function.Consumer;
+
+import static com.gregtechceu.gtceu.common.data.GTBlocks.*;
+import static com.gregtechceu.gtceu.common.data.GTMachines.*;
+import static com.gregtechceu.gtceu.common.data.machines.GCyMMachines.PARALLEL_HATCH;
 
 public class BlockPattern {
 
@@ -202,6 +211,9 @@ public class BlockPattern {
         return true;
     }
 
+    private final MachineDefinition[] maintenances = {MAINTENANCE_HATCH,CONFIGURABLE_MAINTENANCE_HATCH,CLEANING_MAINTENANCE_HATCH,AUTO_MAINTENANCE_HATCH};
+    private final CoilBlock[] COIL_BLOCKS={COIL_CUPRONICKEL.get(),COIL_CUPRONICKEL.get()};
+
     public void autoBuild(Player player, MultiblockState worldState) {
         Level world = player.level();
         int minZ = -centerOffset[4];
@@ -216,8 +228,20 @@ public class BlockPattern {
         Map<BlockPos, Object> blocks = new HashMap<>();
         Set<BlockPos> placeBlockPos = new HashSet<>();
         blocks.put(centerPos, controller);
+        int[] repeat = new int[this.fingerLength];
+        for(int h = 0; h< this.fingerLength; h++) {
+            var minH = aisleRepetitions[h][0];
+            var maxH = aisleRepetitions[h][1];
+            if (minH != maxH) {
+                repeat[h] = 5;
+            } else {
+                repeat[h] = minH;
+            }
+        }
+
+
         for (int c = 0, z = minZ++, r; c < this.fingerLength; c++) {
-            for (r = 0; r < aisleRepetitions[c][0]; r++) {
+            for (r = 0; r < repeat[c]; r++) {
                 cacheLayer.clear();
                 for (int b = 0, y = -centerOffset[1]; b < this.thumbLength; b++, y++) {
                     for (int a = 0, x = -centerOffset[0]; a < this.palmLength; a++, x++) {
@@ -301,6 +325,18 @@ public class BlockPattern {
                             if (infos != null) {
                                 for (BlockInfo info : infos) {
                                     if (info.getBlockState().getBlock() != Blocks.AIR) {
+                                        final Block finalBlock = info.getBlockState().getBlock();
+                                        if (finalBlock instanceof CoilBlock) {
+                                            info = new BlockInfo(COIL_HSSG.get());
+                                        } else if (Arrays.stream(ENERGY_INPUT_HATCH).anyMatch(hatch -> hatch.getBlock() == finalBlock)) {
+                                            info = new BlockInfo(ENERGY_INPUT_HATCH[5].getBlock());
+                                        } else if (Arrays.stream(ITEM_IMPORT_BUS).anyMatch(bus->bus.getBlock()==finalBlock)){
+                                            info = new BlockInfo(ITEM_IMPORT_BUS[5].getBlock());
+                                        } else if (Arrays.stream(PARALLEL_HATCH).anyMatch(hatch->hatch.getBlock()==finalBlock)) {
+                                            info = new BlockInfo(PARALLEL_HATCH[2].getBlock());
+                                        } else if (Arrays.stream(maintenances).anyMatch(hatch->hatch.getBlock() == finalBlock)) {
+                                            info = new BlockInfo(maintenances[3].getBlock());
+                                        }
                                         candidates.add(info.getItemStackForm());
                                     }
                                 }
