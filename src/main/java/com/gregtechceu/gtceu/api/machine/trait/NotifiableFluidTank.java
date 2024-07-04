@@ -2,10 +2,13 @@ package com.gregtechceu.gtceu.api.machine.trait;
 
 import com.gregtechceu.gtceu.api.capability.recipe.FluidRecipeCapability;
 import com.gregtechceu.gtceu.api.capability.recipe.IO;
+import com.gregtechceu.gtceu.api.capability.recipe.ItemRecipeCapability;
 import com.gregtechceu.gtceu.api.capability.recipe.RecipeCapability;
 import com.gregtechceu.gtceu.api.machine.MetaMachine;
 import com.gregtechceu.gtceu.api.recipe.GTRecipe;
+import com.gregtechceu.gtceu.api.recipe.content.Content;
 import com.gregtechceu.gtceu.api.recipe.ingredient.FluidIngredient;
+import com.gregtechceu.gtceu.api.recipe.ingredient.IntCircuitIngredient;
 
 import com.lowdragmc.lowdraglib.misc.FluidStorage;
 import com.lowdragmc.lowdraglib.side.fluid.FluidHelper;
@@ -53,6 +56,8 @@ public class NotifiableFluidTank extends NotifiableRecipeHandlerTrait<FluidIngre
     @Getter
     protected FluidStorage lockedFluid = new FluidStorage(FluidHelper.getBucket());
 
+    protected NotifiableItemStackHandler CombinedCircuitInventory;
+
     public NotifiableFluidTank(MetaMachine machine, int slots, long capacity, IO io, IO capabilityIO) {
         super(machine);
         this.handlerIO = io;
@@ -81,6 +86,12 @@ public class NotifiableFluidTank extends NotifiableRecipeHandlerTrait<FluidIngre
         this(machine, slots, capacity, io, io);
     }
 
+    public NotifiableFluidTank(MetaMachine machine, int slots, long capacity, IO io,
+                               NotifiableItemStackHandler circuitInventory) {
+        this(machine, slots, capacity, io);
+        this.CombinedCircuitInventory = circuitInventory;
+    }
+
     public NotifiableFluidTank(MetaMachine machine, List<FluidStorage> storages, IO io) {
         this(machine, storages, io, io);
     }
@@ -98,13 +109,30 @@ public class NotifiableFluidTank extends NotifiableRecipeHandlerTrait<FluidIngre
     @Override
     public List<FluidIngredient> handleRecipeInner(IO io, GTRecipe recipe, List<FluidIngredient> left,
                                                    @Nullable String slotName, boolean simulate) {
-        return handleIngredient(io, recipe, left, simulate, this.handlerIO, storages);
+        return handleIngredient(io, recipe, left, simulate, this.handlerIO, storages, CombinedCircuitInventory,
+                this.isDistinct());
+    }
+
+    public static List<FluidIngredient> handleIngredient(IO io, GTRecipe recipe, List<FluidIngredient> left,
+                                                         boolean simulate, IO handlerIO, FluidStorage[] storages) {
+        return handleIngredient(io, recipe, left, simulate, handlerIO, storages, null, false);
     }
 
     @Nullable
     public static List<FluidIngredient> handleIngredient(IO io, GTRecipe recipe, List<FluidIngredient> left,
-                                                         boolean simulate, IO handlerIO, FluidStorage[] storages) {
+                                                         boolean simulate, IO handlerIO, FluidStorage[] storages,
+                                                         NotifiableItemStackHandler circuitInventory,
+                                                         boolean isDistinct) {
         if (io != handlerIO) return left;
+        boolean canRunRecipe = true;
+        if (isDistinct && circuitInventory != null) {
+            var circuit = circuitInventory.storage.getStackInSlot(0);
+            var circuitIngredient = (IntCircuitIngredient) recipe.getInputContents(ItemRecipeCapability.CAP)
+                    .stream().map(Content::getContent)
+                    .filter(content -> content instanceof IntCircuitIngredient).findFirst().orElse(null);
+            if (circuitIngredient == null || !circuitIngredient.test(circuit)) canRunRecipe = false;
+        }
+
         var capabilities = simulate ? Arrays.stream(storages).map(FluidStorage::copy).toArray(FluidStorage[]::new) :
                 storages;
         for (FluidStorage capability : capabilities) {
@@ -130,7 +158,7 @@ public class NotifiableFluidTank extends NotifiableRecipeHandlerTrait<FluidIngre
                     FluidStack drained = capability.drain(foundStack.copy(fluidStack.getAmount()), false);
 
                     fluidStack.setAmount(fluidStack.getAmount() - drained.getAmount());
-                    if (fluidStack.getAmount() <= 0) {
+                    if (fluidStack.getAmount() <= 0 && canRunRecipe) {
                         iterator.remove();
                     }
                 }

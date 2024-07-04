@@ -8,6 +8,7 @@ import com.gregtechceu.gtceu.api.machine.IMachineBlockEntity;
 import com.gregtechceu.gtceu.api.machine.TickableSubscription;
 import com.gregtechceu.gtceu.api.machine.fancyconfigurator.CircuitFancyConfigurator;
 import com.gregtechceu.gtceu.api.machine.feature.IMachineModifyDrops;
+import com.gregtechceu.gtceu.api.machine.feature.multiblock.IDistinctPart;
 import com.gregtechceu.gtceu.api.machine.multiblock.part.TieredIOPartMachine;
 import com.gregtechceu.gtceu.api.machine.trait.NotifiableFluidTank;
 import com.gregtechceu.gtceu.api.machine.trait.NotifiableItemStackHandler;
@@ -46,7 +47,7 @@ import javax.annotation.ParametersAreNonnullByDefault;
  */
 @ParametersAreNonnullByDefault
 @MethodsReturnNonnullByDefault
-public class FluidHatchPartMachine extends TieredIOPartMachine implements IMachineModifyDrops {
+public class FluidHatchPartMachine extends TieredIOPartMachine implements IMachineModifyDrops, IDistinctPart {
 
     protected static final ManagedFieldHolder MANAGED_FIELD_HOLDER = new ManagedFieldHolder(FluidHatchPartMachine.class,
             TieredIOPartMachine.MANAGED_FIELD_HOLDER);
@@ -72,8 +73,8 @@ public class FluidHatchPartMachine extends TieredIOPartMachine implements IMachi
                                  Object... args) {
         super(holder, tier, io);
         this.slots = slots;
-        this.tank = createTank(initialCapacity, slots, args);
         this.circuitInventory = createCircuitItemHandler(io);
+        this.tank = createTank(initialCapacity, slots, args);
     }
 
     //////////////////////////////////////
@@ -85,7 +86,7 @@ public class FluidHatchPartMachine extends TieredIOPartMachine implements IMachi
     }
 
     protected NotifiableFluidTank createTank(long initialCapacity, int slots, Object... args) {
-        return new NotifiableFluidTank(this, slots, getTankCapacity(initialCapacity, getTier()), io);
+        return new NotifiableFluidTank(this, slots, getTankCapacity(initialCapacity, getTier()), io, circuitInventory);
     }
 
     public static long getTankCapacity(long initialCapacity, int tier) {
@@ -177,8 +178,18 @@ public class FluidHatchPartMachine extends TieredIOPartMachine implements IMachi
     //////////////////////////////////////
 
     @Override
+    public boolean isDistinct() {
+        return this.tank.isDistinct();
+    }
+
+    @Override
+    public void setDistinct(boolean isDistinct) {
+        this.tank.setDistinct(isDistinct);
+    }
+
+    @Override
     public void attachConfigurators(ConfiguratorPanel configuratorPanel) {
-        super.attachConfigurators(configuratorPanel);
+        IDistinctPart.super.attachConfigurators(configuratorPanel);
         if (this.io == IO.IN) {
             configuratorPanel.attachConfigurators(new CircuitFancyConfigurator(circuitInventory.storage));
         }
