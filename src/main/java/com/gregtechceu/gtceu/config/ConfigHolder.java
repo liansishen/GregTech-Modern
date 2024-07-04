@@ -173,10 +173,6 @@ public class ConfigHolder {
             public boolean nativeEUToPlatformNative = true;
 
             @Configurable
-            @Configurable.Comment({ "Enable GTEU to Platform native (and vice versa) Converters.", "Default: false" })
-            public boolean enablePlatformConverters = false;
-
-            @Configurable
             @Configurable.Comment({ "Platform native Energy to GTEU ratio for converting FE to EU.",
                     "Only affects converters.", "Default: 4 FE/Energy == 1 EU" })
             @Configurable.Range(min = 1, max = 16)
@@ -316,23 +312,11 @@ public class ConfigHolder {
                 "Default: false" })
         public boolean harmlessActiveTransformers = false;
         @Configurable
-        @Configurable.Comment({ "Divisor for Recipe Duration per Overclock.", "Default: 2.0" })
-        @Configurable.DecimalRange(min = 2.0, max = 3.0)
-        @Configurable.Gui.NumberFormat("0.0#")
-        public double overclockDivisor = 2.0;
-        @Configurable
         @Configurable.Comment({ "Whether to play machine sounds while machines are active.", "Default: true" })
         public boolean machineSounds = true;
         @Configurable
         @Configurable.Comment({ "Whether Steam Multiblocks should use Steel instead of Bronze.", "Default: false" })
         public boolean steelSteamMultiblocks = false;
-        @Configurable
-        @Configurable.Comment({ "Whether to enable the cleanroom, required for various recipes.", "Default: true" })
-        public boolean enableCleanroom = true;
-        @Configurable
-        @Configurable.Comment({ "Whether multiblocks should ignore all cleanroom requirements.",
-                "This does nothing if enableCleanroom is false.", "Default: false" })
-        public boolean cleanMultiblocks = false;
         @Configurable
         @Configurable.Comment({ "Block to replace mined ores with in the miner and multiblock miner.",
                 "Default: minecraft:cobblestone" })

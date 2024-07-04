@@ -156,7 +156,7 @@ public class FusionReactorMachine extends WorkableElectricMultiblockMachine impl
 
             // if the stored heat is >= required energy, recipe is okay to run
             if (heatDiff <= 0) {
-                return RecipeHelper.applyOverclock(new OverclockingLogic(2, 2), recipe,
+                return RecipeHelper.applyOverclock(new OverclockingLogic(2, 2, 1, 1), recipe,
                         fusionReactorMachine.getMaxVoltage());
             }
             // if the remaining energy needed is more than stored, do not run
@@ -168,7 +168,7 @@ public class FusionReactorMachine extends WorkableElectricMultiblockMachine impl
             // increase the stored heat
             fusionReactorMachine.heat += heatDiff;
             fusionReactorMachine.updatePreHeatSubscription();
-            return RecipeHelper.applyOverclock(new OverclockingLogic(2, 2), recipe,
+            return RecipeHelper.applyOverclock(new OverclockingLogic(2, 2, 1, 1), recipe,
                     fusionReactorMachine.getMaxVoltage());
         }
         return null;

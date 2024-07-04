@@ -5,7 +5,6 @@ import com.gregtechceu.gtceu.api.capability.recipe.EURecipeCapability;
 import com.gregtechceu.gtceu.api.capability.recipe.IO;
 import com.gregtechceu.gtceu.api.fluids.store.FluidStorageKeys;
 import com.gregtechceu.gtceu.api.gui.GuiTextures;
-import com.gregtechceu.gtceu.api.gui.fancy.IFancyTooltip;
 import com.gregtechceu.gtceu.api.gui.fancy.TooltipsPanel;
 import com.gregtechceu.gtceu.api.machine.IMachineBlockEntity;
 import com.gregtechceu.gtceu.api.machine.MetaMachine;
@@ -43,19 +42,22 @@ import javax.annotation.ParametersAreNonnullByDefault;
  */
 @ParametersAreNonnullByDefault
 @MethodsReturnNonnullByDefault
-public class LargeCombustionEngineMachine extends WorkableElectricMultiblockMachine implements ITieredMachine {
+public class ChemicalEnergyDevourerMachine extends WorkableElectricMultiblockMachine implements ITieredMachine {
 
-    private static final FluidStack OXYGEN_STACK = GTMaterials.Oxygen.getFluid(20 * FluidHelper.getBucket() / 1000);
     private static final FluidStack LIQUID_OXYGEN_STACK = GTMaterials.Oxygen.getFluid(FluidStorageKeys.LIQUID,
+            120 * FluidHelper.getBucket() / 1000);
+    private static final FluidStack DINITROGEN_TETROXIDE_STACK = GTMaterials.DinitrogenTetroxide.getFluid(
             80 * FluidHelper.getBucket() / 1000);
-    private static final FluidStack LUBRICANT_STACK = GTMaterials.Lubricant.getFluid(FluidHelper.getBucket() / 1000);
+    private static final FluidStack LUBRICANT_STACK = GTMaterials.Lubricant.getFluid(
+            2 * FluidHelper.getBucket() / 1000);
 
     @Getter
     private final int tier;
     // runtime
     private boolean isOxygenBoosted = false;
+    private boolean isDinitrogenTetroxideBoosted = false;
 
-    public LargeCombustionEngineMachine(IMachineBlockEntity holder, int tier) {
+    public ChemicalEnergyDevourerMachine(IMachineBlockEntity holder, int tier) {
         super(holder);
         this.tier = tier;
     }
@@ -64,8 +66,8 @@ public class LargeCombustionEngineMachine extends WorkableElectricMultiblockMach
         var facing = this.getFrontFacing();
         boolean permuteXZ = facing.getAxis() == Direction.Axis.Z;
         var centerPos = this.getPos().relative(facing);
-        for (int x = -1; x < 2; x++) {
-            for (int y = -1; y < 2; y++) {
+        for (int x = -3; x < 4; x++) {
+            for (int y = -3; y < 4; y++) {
                 // Skip the controller block itself
                 if (x == 0 && y == 0)
                     continue;
@@ -78,12 +80,8 @@ public class LargeCombustionEngineMachine extends WorkableElectricMultiblockMach
         return false;
     }
 
-    private boolean isExtreme() {
-        return getTier() > GTValues.EV;
-    }
-
     public boolean isBoostAllowed() {
-        return getMaxVoltage() >= GTValues.V[getTier() + 1];
+        return getMaxVoltage() >= GTValues.V[getTier() + 3];
     }
 
     //////////////////////////////////////
@@ -92,10 +90,12 @@ public class LargeCombustionEngineMachine extends WorkableElectricMultiblockMach
 
     @Override
     public long getOverclockVoltage() {
-        if (isOxygenBoosted)
-            return GTValues.V[tier] * 4;
+        if (isOxygenBoosted && isDinitrogenTetroxideBoosted)
+            return GTValues.V[tier] * 64;
+        else if (isOxygenBoosted)
+            return GTValues.V[tier] * 32;
         else
-            return GTValues.V[tier] * 2;
+            return GTValues.V[tier] * 16;
     }
 
     protected GTRecipe getLubricantRecipe() {
@@ -103,21 +103,29 @@ public class LargeCombustionEngineMachine extends WorkableElectricMultiblockMach
     }
 
     protected GTRecipe getBoostRecipe() {
-        return GTRecipeBuilder.ofRaw().inputFluids(isExtreme() ? LIQUID_OXYGEN_STACK : OXYGEN_STACK).buildRawRecipe();
+        return GTRecipeBuilder.ofRaw().inputFluids(LIQUID_OXYGEN_STACK).buildRawRecipe();
+    }
+
+    protected GTRecipe getBoostRecipea() {
+        return GTRecipeBuilder.ofRaw().inputFluids(DINITROGEN_TETROXIDE_STACK).buildRawRecipe();
     }
 
     @Nullable
     public static GTRecipe recipeModifier(MetaMachine machine, @NotNull GTRecipe recipe) {
-        if (machine instanceof LargeCombustionEngineMachine engineMachine) {
+        if (machine instanceof ChemicalEnergyDevourerMachine engineMachine) {
             var EUt = RecipeHelper.getOutputEUt(recipe);
             // has lubricant
             if (EUt > 0 && engineMachine.getLubricantRecipe().matchRecipe(engineMachine).isSuccess() &&
                     !engineMachine.isIntakesObstructed()) {
-                var maxParallel = (int) (engineMachine.getOverclockVoltage() / EUt); // get maximum parallel
+                var maxParallel = (int) (engineMachine.getOverclockVoltage() / EUt);
                 var parallelResult = GTRecipeModifiers.fastParallel(engineMachine, recipe, maxParallel, false);
-                if (engineMachine.isOxygenBoosted) { // boost production
+                if (engineMachine.isOxygenBoosted && engineMachine.isDinitrogenTetroxideBoosted) {
                     recipe = parallelResult.getFirst() == recipe ? recipe.copy() : parallelResult.getFirst();
-                    long eut = (long) (EUt * parallelResult.getSecond() * (engineMachine.isExtreme() ? 2 : 1.5));
+                    long eut = EUt * parallelResult.getSecond() * 4;
+                    recipe.tickOutputs.put(EURecipeCapability.CAP, List.of(new Content(eut, 1.0f, 0.0f, null, null)));
+                } else if (engineMachine.isOxygenBoosted) {
+                    recipe = parallelResult.getFirst() == recipe ? recipe.copy() : parallelResult.getFirst();
+                    long eut = EUt * parallelResult.getSecond() * 2;
                     recipe.tickOutputs.put(EURecipeCapability.CAP, List.of(new Content(eut, 1.0f, 0.0f, null, null)));
                 } else {
                     recipe = parallelResult.getFirst();
@@ -143,8 +151,11 @@ public class LargeCombustionEngineMachine extends WorkableElectricMultiblockMach
         // check boost fluid
         if ((totalContinuousRunningTime == 1 || totalContinuousRunningTime % 20 == 0) && isBoostAllowed()) {
             var boosterRecipe = getBoostRecipe();
+            var boosterRecipea = getBoostRecipea();
             this.isOxygenBoosted = boosterRecipe.matchRecipe(this).isSuccess() &&
                     boosterRecipe.handleRecipeIO(IO.IN, this);
+            this.isDinitrogenTetroxideBoosted = boosterRecipea.matchRecipe(this).isSuccess() &&
+                    boosterRecipea.handleRecipeIO(IO.IN, this);
         }
         return value;
     }
@@ -163,24 +174,21 @@ public class LargeCombustionEngineMachine extends WorkableElectricMultiblockMach
         super.addDisplayText(textList);
         if (isFormed()) {
             if (isBoostAllowed()) {
-                if (!isExtreme()) {
-                    if (isOxygenBoosted) {
-                        textList.add(Component.translatable("gtceu.multiblock.large_combustion_engine.oxygen_boosted"));
-                    } else {
-                        textList.add(Component
-                                .translatable("gtceu.multiblock.large_combustion_engine.supply_oxygen_to_boost"));
-                    }
+                if (isOxygenBoosted && isDinitrogenTetroxideBoosted) {
+                    textList.add(Component.translatable(
+                            "gtceu.multiblock.large_combustion_engine.Joint_boosted"));
+                } else if (isOxygenBoosted) {
+                    textList.add(Component.translatable(
+                            "gtceu.multiblock.large_combustion_engine.supply_dinitrogen_tetroxide_to_boost"));
+                    textList.add(Component.translatable(
+                            "gtceu.multiblock.large_combustion_engine.liquid_oxygen_boosted"));
                 } else {
-                    if (isOxygenBoosted) {
-                        textList.add(Component
-                                .translatable("gtceu.multiblock.large_combustion_engine.liquid_oxygen_boosted"));
-                    } else {
-                        textList.add(Component.translatable(
-                                "gtceu.multiblock.large_combustion_engine.supply_liquid_oxygen_to_boost"));
-                    }
+                    textList.add(Component.translatable(
+                            "gtceu.multiblock.large_combustion_engine.supply_liquid_oxygen_to_boost"));
                 }
             } else {
-                textList.add(Component.translatable("gtceu.multiblock.large_combustion_engine.boost_disallowed"));
+                textList.add(Component.translatable(
+                        "gtceu.multiblock.large_combustion_engine.boost_disallowed"));
             }
         }
     }
@@ -188,7 +196,7 @@ public class LargeCombustionEngineMachine extends WorkableElectricMultiblockMach
     @Override
     public void attachTooltips(TooltipsPanel tooltipsPanel) {
         super.attachTooltips(tooltipsPanel);
-        tooltipsPanel.attachTooltips(new IFancyTooltip.Basic(
+        tooltipsPanel.attachTooltips(new Basic(
                 () -> GuiTextures.INDICATOR_NO_STEAM.get(false),
                 () -> List.of(Component.translatable("gtceu.multiblock.large_combustion_engine.obstructed")
                         .setStyle(Style.EMPTY.withColor(ChatFormatting.RED))),

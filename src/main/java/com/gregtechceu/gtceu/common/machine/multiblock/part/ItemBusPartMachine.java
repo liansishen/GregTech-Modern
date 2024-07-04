@@ -80,7 +80,7 @@ public class ItemBusPartMachine extends TieredIOPartMachine implements IDistinct
     }
 
     protected int getInventorySize() {
-        int sizeRoot = 1 + Math.min(9, getTier());
+        int sizeRoot = 1 + getTier();
         return sizeRoot * sizeRoot;
     }
 

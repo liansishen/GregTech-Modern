@@ -2641,6 +2641,7 @@ public class GTItems {
     public static void init() {
         generateMaterialItems();
         generateTools();
+        AddItemsAndBlocks.init();
     }
 
     public static <T extends ItemLike> NonNullConsumer<T> compassNode(CompassSection section, CompassNode... preNodes) {

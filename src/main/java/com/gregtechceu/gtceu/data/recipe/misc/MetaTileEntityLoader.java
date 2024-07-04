@@ -1,6 +1,5 @@
 package com.gregtechceu.gtceu.data.recipe.misc;
 
-import com.gregtechceu.gtceu.GTCEu;
 import com.gregtechceu.gtceu.api.GTValues;
 import com.gregtechceu.gtceu.api.data.chemical.ChemicalHelper;
 import com.gregtechceu.gtceu.api.data.chemical.material.Material;
@@ -923,6 +922,18 @@ public class MetaTileEntityLoader {
         VanillaRecipeHelper.addShapedRecipe(provider, true, "gold_drum", GTMachines.GOLD_DRUM.asStack(), " h ", "PRP",
                 "PRP", 'P', new UnificationEntry(TagPrefix.plate, GTMaterials.Gold), 'R',
                 new UnificationEntry(TagPrefix.rodLong, GTMaterials.Gold));
+        VanillaRecipeHelper.addShapedRecipe(provider, true, "rhodiumplatedpalladium_crate",
+                GTMachines.RHODIUMPLATEDPALLADIUM_CRATE.asStack(), "RPR", "PhP", "RPR", 'P',
+                new UnificationEntry(TagPrefix.plate, GTMaterials.RhodiumPlatedPalladium), 'R',
+                new UnificationEntry(TagPrefix.rodLong, GTMaterials.RhodiumPlatedPalladium));
+        VanillaRecipeHelper.addShapedRecipe(provider, true, "naquadahalloy_crate",
+                GTMachines.NAQUDAHALLOY_CRATE.asStack(), "RPR", "PhP", "RPR", 'P',
+                new UnificationEntry(TagPrefix.plate, GTMaterials.NaquadahAlloy), 'R',
+                new UnificationEntry(TagPrefix.rodLong, GTMaterials.NaquadahAlloy));
+        VanillaRecipeHelper.addShapedRecipe(provider, true, "neutronium_crate",
+                GTMachines.NEUTRONIUM_CRATE.asStack(), "RPR", "PhP", "RPR", 'P',
+                new UnificationEntry(TagPrefix.plate, GTMaterials.Neutronium), 'R',
+                new UnificationEntry(TagPrefix.rodLong, GTMaterials.Neutronium));
 
         // Hermetic Casings
         VanillaRecipeHelper.addShapedRecipe(provider, true, "hermetic_casing_lv", GTBlocks.HERMETIC_CASING_LV.asStack(),
@@ -1051,23 +1062,6 @@ public class MetaTileEntityLoader {
         // "CV", 'H', GTMachines.HULL[GTValues.HV].getStackForm(), 'P', MetaItems.ELECTRIC_PUMP_HV.getStackForm(), 'V',
         // MetaItems.CONVEYOR_MODULE_HV.getStackForm(), 'C', new UnificationEntry(TagPrefix.circuit,
         // MarkerGTMaterials.Tier.LV));
-
-        VanillaRecipeHelper.addShapedRecipe(provider, true, "cleanroom", GTMachines.CLEANROOM.asStack(), "FFF", "RHR",
-                "MCM", 'F', GTItems.ITEM_FILTER.asStack(), 'R',
-                new UnificationEntry(TagPrefix.rotor, GTMaterials.StainlessSteel), 'H', HULL.getIngredient(HV), 'M',
-                GTItems.ELECTRIC_MOTOR_HV.asStack(), 'C', CustomTags.HV_CIRCUITS);
-
-        if (ConfigHolder.INSTANCE.compat.energy.enablePlatformConverters && GTCEu.isRebornEnergyLoaded()) {
-            registerMachineRecipe(provider, true, GTMachines.ENERGY_CONVERTER_1A, " WW", "RMC", " WW", 'C', CIRCUIT,
-                    'M', HULL, 'W', CABLE, 'R', new UnificationEntry(TagPrefix.cableGtSingle, GTMaterials.RedAlloy));
-            registerMachineRecipe(provider, true, GTMachines.ENERGY_CONVERTER_4A, " WW", "RMC", " WW", 'C', CIRCUIT,
-                    'M', HULL, 'W', CABLE_QUAD, 'R',
-                    new UnificationEntry(TagPrefix.cableGtQuadruple, GTMaterials.RedAlloy));
-            registerMachineRecipe(provider, true, GTMachines.ENERGY_CONVERTER_8A, " WW", "RMC", " WW", 'C', CIRCUIT,
-                    'M', HULL, 'W', CABLE_OCT, 'R', new UnificationEntry(TagPrefix.cableGtOctal, GTMaterials.RedAlloy));
-            registerMachineRecipe(provider, true, GTMachines.ENERGY_CONVERTER_16A, " WW", "RMC", " WW", 'C', CIRCUIT,
-                    'M', HULL, 'W', CABLE_HEX, 'R', new UnificationEntry(TagPrefix.cableGtHex, GTMaterials.RedAlloy));
-        }
     }
 
     // Can only accept a subset of "Item" types:

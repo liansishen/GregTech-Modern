@@ -76,7 +76,7 @@ public class SimpleGeneratorMachine extends WorkableTieredMachine
 
     @Override
     protected long getMaxInputOutputAmperage() {
-        return 1L;
+        return 8L;
     }
 
     @Override
@@ -98,7 +98,7 @@ public class SimpleGeneratorMachine extends WorkableTieredMachine
             if (EUt > 0) {
                 var maxParallel = (int) (Math.min(generator.getOverclockVoltage(),
                         GTValues.V[generator.getOverclockTier()]) / EUt);
-                return GTRecipeModifiers.fastParallel(generator, recipe, maxParallel, false).getFirst();
+                return GTRecipeModifiers.fastParallel(generator, recipe, 8 * maxParallel, false).getFirst();
             }
         }
         return null;

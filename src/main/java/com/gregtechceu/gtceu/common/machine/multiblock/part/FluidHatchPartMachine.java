@@ -89,7 +89,7 @@ public class FluidHatchPartMachine extends TieredIOPartMachine implements IMachi
     }
 
     public static long getTankCapacity(long initialCapacity, int tier) {
-        return initialCapacity * (1L << Math.min(9, tier));
+        return initialCapacity * (1L << tier);
     }
 
     protected NotifiableItemStackHandler createCircuitItemHandler(Object... args) {
