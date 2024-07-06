@@ -12,10 +12,7 @@ import com.gregtechceu.gtceu.api.recipe.lookup.MapFluidTagIngredient;
 import com.gregtechceu.gtceu.api.recipe.modifier.ParallelLogic;
 import com.gregtechceu.gtceu.api.recipe.ui.GTRecipeTypeUI;
 import com.gregtechceu.gtceu.integration.GTRecipeWidget;
-import com.gregtechceu.gtceu.utils.FluidKey;
-import com.gregtechceu.gtceu.utils.GTHashMaps;
-import com.gregtechceu.gtceu.utils.OverlayedFluidHandler;
-import com.gregtechceu.gtceu.utils.OverlayingFluidStorage;
+import com.gregtechceu.gtceu.utils.*;
 
 import com.lowdragmc.lowdraglib.gui.texture.ProgressTexture;
 import com.lowdragmc.lowdraglib.gui.widget.TankWidget;
@@ -33,8 +30,7 @@ import net.minecraft.world.level.material.Fluid;
 
 import com.mojang.datafixers.util.Either;
 import com.mojang.datafixers.util.Pair;
-import it.unimi.dsi.fastutil.objects.Object2LongLinkedOpenHashMap;
-import it.unimi.dsi.fastutil.objects.ObjectArrayList;
+import it.unimi.dsi.fastutil.objects.*;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.jetbrains.annotations.UnknownNullability;
@@ -190,18 +186,54 @@ public class FluidRecipeCapability extends RecipeCapability<FluidIngredient> {
         return multiplier;
     }
 
-    @Override
-    public int getMaxParallelRatio(IRecipeCapabilityHolder holder, GTRecipe recipe, int parallelAmount) {
-        // Find all the fluids in the combined Fluid Input inventories and create oversized FluidStacks
-        Map<FluidKey, Long> fluidStacks = Objects
+    private Object2LongMap<FluidStack> getFluidIngredientStacks(IRecipeCapabilityHolder holder) {
+        Object2LongMap<FluidStack> map = new Object2LongOpenHashMap<>();
+        Object2LongMap<FluidStack> result = new Object2LongOpenHashMap<>();
+
+        List<IRecipeHandler<?>> recipeHandlerList = Objects
                 .requireNonNullElseGet(holder.getCapabilitiesProxy().get(IO.IN, FluidRecipeCapability.CAP),
                         Collections::<IRecipeHandler<?>>emptyList)
                 .stream()
-                .map(container -> container.getContents().stream().filter(FluidStack.class::isInstance)
-                        .map(FluidStack.class::cast).toList())
-                .flatMap(container -> GTHashMaps.fromFluidCollection(container).entrySet().stream())
-                .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue, Long::sum,
-                        Object2LongLinkedOpenHashMap::new));
+                .filter(handler -> !handler.isProxy()).toList();
+
+        for (IRecipeHandler<?> container : recipeHandlerList) {
+
+            var fluidMap = container.getContents().stream().filter(FluidStack.class::isInstance)
+                    .map(FluidStack.class::cast)
+                    .flatMap(con -> fromFluidCollection(Collections.singleton(con)).object2LongEntrySet()
+                            .stream())
+                    .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue, Long::sum,
+                            Object2LongOpenHashMap::new));
+
+            if (container.isDistinct()) {
+                result.putAll(fluidMap);
+            } else {
+                for (Object2LongMap.Entry<FluidStack> obj : fluidMap.object2LongEntrySet()) {
+                    map.computeLong(obj.getKey(), (k, v) -> v == null ? obj.getLongValue() : v + obj.getLongValue());
+                }
+            }
+        }
+        result.putAll(map);
+        return result;
+    }
+
+    public static Object2LongMap<FluidStack> fromFluidCollection(Collection<FluidStack> fluidInputs) {
+        final Object2LongMap<FluidStack> map = new Object2LongLinkedOpenHashMap<>();
+
+        // Create a single stack of the combined count for each item
+        for (FluidStack fluidStack : fluidInputs) {
+            if (fluidStack != null && fluidStack.getAmount() > 0) {
+                map.put(fluidStack, map.getLong(fluidStack) + fluidStack.getAmount());
+            }
+        }
+
+        return map;
+    }
+
+    @Override
+    public int getMaxParallelRatio(IRecipeCapabilityHolder holder, GTRecipe recipe, int parallelAmount) {
+        // Find all the fluids in the combined Fluid Input inventories and create oversized FluidStacks
+        Object2LongMap<FluidStack> fluidIngredientStack = getFluidIngredientStacks(holder);
 
         int minMultiplier = Integer.MAX_VALUE;
         // map the recipe input fluids to account for duplicated fluids,
@@ -227,13 +259,12 @@ public class FluidRecipeCapability extends RecipeCapability<FluidIngredient> {
             long needed = notConsumableFluid.getValue();
             long available = 0;
             // For every fluid gathered from the fluid inputs.
-            for (Map.Entry<FluidKey, Long> inputFluid : fluidStacks.entrySet()) {
+            for (Object2LongMap.Entry<FluidStack> inputFluid : fluidIngredientStack.object2LongEntrySet()) {
                 // Strip the Non-consumable tags here, as FluidKey compares the tags, which causes finding matching
                 // fluids
                 // in the input tanks to fail, because there is nothing in those hatches with a non-consumable tag
-                if (notConsumableFluid.getKey().test(
-                        FluidStack.create(inputFluid.getKey().fluid, inputFluid.getValue(), inputFluid.getKey().tag))) {
-                    available = inputFluid.getValue();
+                if (notConsumableFluid.getKey().test(inputFluid.getKey())) {
+                    available = inputFluid.getLongValue();
                     if (available > needed) {
                         inputFluid.setValue(available - needed);
                         needed -= available;
@@ -268,10 +299,10 @@ public class FluidRecipeCapability extends RecipeCapability<FluidIngredient> {
             long needed = fs.getValue();
             long available = 0;
             // For every fluid gathered from the fluid inputs.
-            for (Map.Entry<FluidKey, Long> inputFluid : fluidStacks.entrySet()) {
-                if (fs.getKey().test(
-                        FluidStack.create(inputFluid.getKey().fluid, inputFluid.getValue(), inputFluid.getKey().tag))) {
-                    available += inputFluid.getValue();
+            for (Object2LongMap.Entry<FluidStack> inputFluid : fluidIngredientStack.object2LongEntrySet()) {
+                if (fs.getKey().test(inputFluid.getKey())) {
+                    available += inputFluid.getLongValue();
+                    break;
                 }
             }
             if (available >= needed) {
