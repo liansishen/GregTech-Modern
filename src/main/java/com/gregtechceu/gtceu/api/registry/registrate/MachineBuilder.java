@@ -331,6 +331,7 @@ public class MachineBuilder<DEFINITION extends MachineDefinition> extends Builde
     public DEFINITION register() {
         var definition = createDefinition();
 
+        @SuppressWarnings("removal")
         var blockBuilder = registrate.block(name, properties -> {
             RotationState.set(rotationState);
             MachineDefinition.setBuilt(definition);
