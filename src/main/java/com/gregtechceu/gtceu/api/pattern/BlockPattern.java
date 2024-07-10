@@ -3,7 +3,6 @@ package com.gregtechceu.gtceu.api.pattern;
 import com.gregtechceu.gtceu.api.block.ActiveBlock;
 import com.gregtechceu.gtceu.api.block.MetaMachineBlock;
 import com.gregtechceu.gtceu.api.machine.IMachineBlockEntity;
-import com.gregtechceu.gtceu.api.machine.MachineDefinition;
 import com.gregtechceu.gtceu.api.machine.MetaMachine;
 import com.gregtechceu.gtceu.api.machine.feature.multiblock.IMultiController;
 import com.gregtechceu.gtceu.api.machine.feature.multiblock.IMultiPart;
@@ -13,12 +12,10 @@ import com.gregtechceu.gtceu.api.pattern.error.SinglePredicateError;
 import com.gregtechceu.gtceu.api.pattern.predicates.SimplePredicate;
 import com.gregtechceu.gtceu.api.pattern.util.PatternMatchContext;
 import com.gregtechceu.gtceu.api.pattern.util.RelativeDirection;
-import com.gregtechceu.gtceu.common.block.CoilBlock;
 import com.gregtechceu.gtceu.common.item.TerminalBehavior;
+
 import com.lowdragmc.lowdraglib.utils.BlockInfo;
-import com.mojang.datafixers.util.Pair;
-import it.unimi.dsi.fastutil.longs.Long2ObjectOpenHashMap;
-import it.unimi.dsi.fastutil.longs.LongOpenHashSet;
+
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.world.InteractionHand;
@@ -28,7 +25,6 @@ import net.minecraft.world.item.BlockItem;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.context.BlockPlaceContext;
 import net.minecraft.world.level.Level;
-import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.block.state.properties.BlockStateProperties;
@@ -37,6 +33,10 @@ import net.minecraft.world.phys.BlockHitResult;
 import net.minecraftforge.common.capabilities.ForgeCapabilities;
 import net.minecraftforge.common.util.LazyOptional;
 import net.minecraftforge.items.IItemHandler;
+
+import com.mojang.datafixers.util.Pair;
+import it.unimi.dsi.fastutil.longs.Long2ObjectOpenHashMap;
+import it.unimi.dsi.fastutil.longs.LongOpenHashSet;
 import org.apache.commons.lang3.ArrayUtils;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -48,7 +48,6 @@ import java.util.function.Consumer;
 
 import static com.gregtechceu.gtceu.common.data.GTBlocks.*;
 import static com.gregtechceu.gtceu.common.data.GTMachines.*;
-import static com.gregtechceu.gtceu.common.data.machines.GCyMMachines.PARALLEL_HATCH;
 
 public class BlockPattern {
 
@@ -207,13 +206,8 @@ public class BlockPattern {
         return true;
     }
 
-    private final MachineDefinition[] MAINTENANCE_HATCHS = { MAINTENANCE_HATCH, CONFIGURABLE_MAINTENANCE_HATCH,
-            CLEANING_MAINTENANCE_HATCH, AUTO_MAINTENANCE_HATCH };
-    private final CoilBlock[] COIL_BLOCKS = { COIL_CUPRONICKEL.get(), COIL_KANTHAL.get(), COIL_NICHROME.get(),
-            COIL_RTMALLOY.get(), COIL_HSSG.get(), COIL_NAQUADAH.get(), COIL_TRINIUM.get(), COIL_TRITANIUM.get() };
-
-
-    public void autoBuild(Player player, MultiblockState worldState, TerminalBehavior terminalBehavior) {
+    public void autoBuild(Player player, MultiblockState worldState,
+                          TerminalBehavior.AutoBuildSetting autoBuildSetting) {
         Level world = player.level();
         int minZ = -centerOffset[4];
         worldState.clean();
@@ -233,7 +227,7 @@ public class BlockPattern {
             var minH = aisleRepetitions[h][0];
             var maxH = aisleRepetitions[h][1];
             if (minH != maxH) {
-                repeat[h] = Math.max(minH, Math.min(maxH, terminalBehavior.getRepeatCount()));
+                repeat[h] = Math.max(minH, Math.min(maxH, autoBuildSetting.getRepeatCount()));
             } else {
                 repeat[h] = minH;
             }
@@ -320,88 +314,88 @@ public class BlockPattern {
                                 }
                             }
 
-                            List<ItemStack> candidates = new ArrayList<>();
-                            if (infos != null) {
-                                for (BlockInfo info : infos) {
-                                    if (info.getBlockState().getBlock() != Blocks.AIR) {
-                                        final Block finalBlock = info.getBlockState().getBlock();
-                                        if (Arrays.stream(COIL_BLOCKS).anyMatch(obj -> obj == finalBlock) &&
-                                                terminalBehavior.getCoilTier() > 0) {
-                                            info = new BlockInfo(COIL_BLOCKS[terminalBehavior.getCoilTier()]);
-                                            candidates.add(info.getItemStackForm());
-                                            break;
-                                        } else if (Arrays.stream(ENERGY_INPUT_HATCH).anyMatch(
-                                                hatch -> hatch.getBlock() == finalBlock) &&
-                                                terminalBehavior.getEnergyTier() > 0) {
-                                                    info = new BlockInfo(
-                                                            ENERGY_INPUT_HATCH[terminalBehavior.getEnergyTier()]
-                                                                    .getBlock());
-                                                    candidates.add(info.getItemStackForm());
-                                                    break;
-                                                } else
-                                            if (Arrays.stream(PARALLEL_HATCH).anyMatch(
-                                                    hatch -> (hatch != null) && (hatch.getBlock() == finalBlock)) &&
-                                                    terminalBehavior.getParallerTier() > 5) {
-                                                        info = new BlockInfo(
-                                                                PARALLEL_HATCH[terminalBehavior.getParallerTier()]
-                                                                        .getBlock());
-                                                        candidates.add(info.getItemStackForm());
-                                                        break;
-                                                    } else
-                                                if (Arrays.stream(MAINTENANCE_HATCHS)
-                                                        .anyMatch(hatch -> hatch.getBlock() == finalBlock) &&
-                                                        terminalBehavior.getMaintenanceType() > 0) {
-                                                            info = new BlockInfo(
-                                                                    MAINTENANCE_HATCHS[terminalBehavior
-                                                                            .getMaintenanceType()]
-                                                                            .getBlock());
-                                                            candidates.add(info.getItemStackForm());
-                                                            break;
-                                                        } else
-                                                    if (Arrays.stream(ITEM_IMPORT_BUS)
-                                                            .anyMatch(bus -> bus.getBlock() == finalBlock) &&
-                                                            terminalBehavior.getInputBusTier() > 0) {
-                                                                info = new BlockInfo(ITEM_IMPORT_BUS[terminalBehavior
-                                                                        .getInputBusTier()]
-                                                                        .getBlock());
-                                                                candidates.add(info.getItemStackForm());
-                                                                break;
-                                                            } else
-                                                        if (Arrays.stream(ITEM_EXPORT_BUS)
-                                                                .anyMatch(bus -> bus.getBlock() == finalBlock) &&
-                                                                terminalBehavior.getOutputBusTier() > 0) {
-                                                                    info = new BlockInfo(
-                                                                            ITEM_EXPORT_BUS[terminalBehavior
-                                                                                    .getOutputBusTier()]
-                                                                                    .getBlock());
-                                                                    candidates.add(info.getItemStackForm());
-                                                                    break;
-                                                                } else
-                                                            if (Arrays.stream(FLUID_IMPORT_HATCH)
-                                                                    .anyMatch(bus -> bus.getBlock() == finalBlock) &&
-                                                                    terminalBehavior.getInputHatchTier() > 0) {
-                                                                        info = new BlockInfo(
-                                                                                FLUID_IMPORT_HATCH[terminalBehavior
-                                                                                        .getInputHatchTier()]
-                                                                                        .getBlock());
-                                                                        candidates.add(info.getItemStackForm());
-                                                                        break;
-                                                                    } else
-                                                                if (Arrays.stream(FLUID_EXPORT_HATCH)
-                                                                        .anyMatch(
-                                                                                bus -> bus.getBlock() == finalBlock) &&
-                                                                        terminalBehavior.getOutputHatchTier() > 0) {
-                                                                            info = new BlockInfo(
-                                                                                    FLUID_EXPORT_HATCH[terminalBehavior
-                                                                                            .getOutputHatchTier()]
-                                                                                            .getBlock());
-                                                                            candidates.add(info.getItemStackForm());
-                                                                            break;
-                                                                        }
-                                        candidates.add(info.getItemStackForm());
-                                    }
-                                }
-                            }
+                            List<ItemStack> candidates = autoBuildSetting.apply(infos);
+                            // if (infos != null) {
+                            // for (BlockInfo info : infos) {
+                            // if (info.getBlockState().getBlock() != Blocks.AIR) {
+                            // final Block finalBlock = info.getBlockState().getBlock();
+                            // if (Arrays.stream(COIL_BLOCKS).anyMatch(obj -> obj == finalBlock) &&
+                            // terminalBehavior.getCoilTier() > 0) {
+                            // info = new BlockInfo(COIL_BLOCKS[terminalBehavior.getCoilTier()]);
+                            // candidates.add(info.getItemStackForm());
+                            // break;
+                            // } else if (Arrays.stream(ENERGY_INPUT_HATCH).anyMatch(
+                            // hatch -> hatch.getBlock() == finalBlock) &&
+                            // terminalBehavior.getEnergyTier() > 0) {
+                            // info = new BlockInfo(
+                            // ENERGY_INPUT_HATCH[terminalBehavior.getEnergyTier()]
+                            // .getBlock());
+                            // candidates.add(info.getItemStackForm());
+                            // break;
+                            // } else
+                            // if (Arrays.stream(PARALLEL_HATCH).anyMatch(
+                            // hatch -> (hatch != null) && (hatch.getBlock() == finalBlock)) &&
+                            // terminalBehavior.getParallerTier() > 5) {
+                            // info = new BlockInfo(
+                            // PARALLEL_HATCH[terminalBehavior.getParallerTier()]
+                            // .getBlock());
+                            // candidates.add(info.getItemStackForm());
+                            // break;
+                            // } else
+                            // if (Arrays.stream(MAINTENANCE_HATCHS)
+                            // .anyMatch(hatch -> hatch.getBlock() == finalBlock) &&
+                            // terminalBehavior.getMaintenanceType() > 0) {
+                            // info = new BlockInfo(
+                            // MAINTENANCE_HATCHS[terminalBehavior
+                            // .getMaintenanceType()]
+                            // .getBlock());
+                            // candidates.add(info.getItemStackForm());
+                            // break;
+                            // } else
+                            // if (Arrays.stream(ITEM_IMPORT_BUS)
+                            // .anyMatch(bus -> bus.getBlock() == finalBlock) &&
+                            // terminalBehavior.getInputBusTier() > 0) {
+                            // info = new BlockInfo(ITEM_IMPORT_BUS[terminalBehavior
+                            // .getInputBusTier()]
+                            // .getBlock());
+                            // candidates.add(info.getItemStackForm());
+                            // break;
+                            // } else
+                            // if (Arrays.stream(ITEM_EXPORT_BUS)
+                            // .anyMatch(bus -> bus.getBlock() == finalBlock) &&
+                            // terminalBehavior.getOutputBusTier() > 0) {
+                            // info = new BlockInfo(
+                            // ITEM_EXPORT_BUS[terminalBehavior
+                            // .getOutputBusTier()]
+                            // .getBlock());
+                            // candidates.add(info.getItemStackForm());
+                            // break;
+                            // } else
+                            // if (Arrays.stream(FLUID_IMPORT_HATCH)
+                            // .anyMatch(bus -> bus.getBlock() == finalBlock) &&
+                            // terminalBehavior.getInputHatchTier() > 0) {
+                            // info = new BlockInfo(
+                            // FLUID_IMPORT_HATCH[terminalBehavior
+                            // .getInputHatchTier()]
+                            // .getBlock());
+                            // candidates.add(info.getItemStackForm());
+                            // break;
+                            // } else
+                            // if (Arrays.stream(FLUID_EXPORT_HATCH)
+                            // .anyMatch(
+                            // bus -> bus.getBlock() == finalBlock) &&
+                            // terminalBehavior.getOutputHatchTier() > 0) {
+                            // info = new BlockInfo(
+                            // FLUID_EXPORT_HATCH[terminalBehavior
+                            // .getOutputHatchTier()]
+                            // .getBlock());
+                            // candidates.add(info.getItemStackForm());
+                            // break;
+                            // }
+                            // candidates.add(info.getItemStackForm());
+                            // }
+                            // }
+                            // }
 
                             // check inventory
                             ItemStack found = null;
