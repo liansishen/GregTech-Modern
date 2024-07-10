@@ -322,6 +322,15 @@ public class MachineFunctionPresets {
             }
 
             @Override
+            public MachineBuilder<D> tieredHullRenderer(ResourceLocation model) {
+                for (var builder : builders) {
+                    if (builder == null) continue;
+                    builder.tieredHullRenderer(model);
+                }
+                return this;
+            }
+
+            @Override
             public MachineBuilder<D> overlayTieredHullRenderer(String name) {
                 for (var builder : builders) {
                     if (builder == null) continue;
@@ -383,6 +392,15 @@ public class MachineFunctionPresets {
                 for (var builder : builders) {
                     if (builder == null) continue;
                     builder.sidedWorkableCasingRenderer(basePath, overlayModel, tint);
+                }
+                return this;
+            }
+
+            @Override
+            public MachineBuilder<D> sidedWorkableCasingRenderer(String basePath, ResourceLocation overlayModel) {
+                for (var builder : builders) {
+                    if (builder == null) continue;
+                    builder.sidedWorkableCasingRenderer(basePath, overlayModel);
                 }
                 return this;
             }
