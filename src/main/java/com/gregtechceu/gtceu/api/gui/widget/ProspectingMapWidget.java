@@ -59,7 +59,16 @@ public class ProspectingMapWidget extends WidgetGroup implements SearchComponent
         int imageWidth = (chunkRadius * 2 - 1) * 16;
         int imageHeight = (chunkRadius * 2 - 1) * 16;
         addWidget(new ImageWidget(0, (height - imageHeight) / 2 - 4, imageWidth + 8, imageHeight + 8,
-                GuiTextures.BACKGROUND_INVERSE));
+                GuiTextures.BACKGROUND_INVERSE) {
+
+            @Override
+            public boolean mouseClicked(double mouseX, double mouseY, int button) {
+                if (isMouseOverElement(mouseX, mouseY) && button == 1) {
+                    texture.addWayPoint(gui.entityPlayer, mouseX - getPositionX() - 4, mouseY - getPositionY() - 4);
+                }
+                return super.mouseClicked(mouseX, mouseY, button);
+            }
+        });
         var group = (WidgetGroup) new WidgetGroup(imageWidth + 10, 0, width - (imageWidth + 10), height)
                 .setBackground(GuiTextures.BACKGROUND_INVERSE);
         group.addWidget(itemList = new DraggableScrollableWidgetGroup(4, 28, group.getSize().width - 8,

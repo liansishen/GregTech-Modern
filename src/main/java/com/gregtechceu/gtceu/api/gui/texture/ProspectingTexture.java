@@ -4,6 +4,7 @@ import com.gregtechceu.gtceu.api.gui.GuiTextures;
 import com.gregtechceu.gtceu.api.gui.misc.PacketProspecting;
 import com.gregtechceu.gtceu.api.gui.misc.ProspectorMode;
 
+import com.lowdragmc.lowdraglib.LDLib;
 import com.lowdragmc.lowdraglib.gui.editor.ColorPattern;
 import com.lowdragmc.lowdraglib.gui.util.DrawerHelper;
 import com.lowdragmc.lowdraglib.utils.ColorUtils;
@@ -12,7 +13,9 @@ import net.minecraft.MethodsReturnNonnullByDefault;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.renderer.GameRenderer;
 import net.minecraft.client.renderer.texture.AbstractTexture;
+import net.minecraft.core.BlockPos;
 import net.minecraft.server.packs.resources.ResourceManager;
+import net.minecraft.world.entity.player.Player;
 import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.api.distmarker.OnlyIn;
 
@@ -22,6 +25,7 @@ import com.mojang.blaze3d.systems.RenderSystem;
 import com.mojang.blaze3d.vertex.BufferBuilder;
 import com.mojang.blaze3d.vertex.Tesselator;
 import com.mojang.blaze3d.vertex.VertexFormat;
+import dev.ftb.mods.ftbchunks.api.FTBChunksAPI;
 import lombok.Getter;
 
 import java.io.IOException;
@@ -200,5 +204,29 @@ public class ProspectingTexture extends AbstractTexture {
             this.selected = uniqueID;
             load();
         }
+    }
+
+    public void addWayPoint(Player player, double mouseX, double mouseY) {
+        if (!LDLib.isModLoaded("ftbchunks")) {
+            return;
+        }
+        double x, z;
+        if (playerXGui % 16 > 7 || playerXGui % 16 == 0) {
+            x = mouseX - (playerXGui - 1);
+        } else {
+            x = mouseX - playerXGui;
+        }
+        if (playerYGui % 16 > 7 || playerYGui % 16 == 0) {
+            z = mouseY - (playerYGui - 1);
+        } else {
+            z = mouseY - playerYGui;
+        }
+        BlockPos pos = new BlockPos((int) (player.position().x + x), 0, (int) (player.position().z + z));
+
+        var mgr = FTBChunksAPI.clientApi().getWaypointManager(player.level().dimension()).get();
+        mgr.getAllWaypoints().forEach(waypoint -> {
+            if (waypoint.getName().equals("prospect_point")) mgr.removeWaypoint(waypoint);
+        });
+        mgr.addWaypointAt(pos, "prospect_point").setColor(11);
     }
 }
