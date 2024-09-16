@@ -9,8 +9,6 @@ import com.lowdragmc.lowdraglib.gui.editor.ColorPattern;
 import com.lowdragmc.lowdraglib.gui.util.DrawerHelper;
 import com.lowdragmc.lowdraglib.utils.ColorUtils;
 
-import dev.ftb.mods.ftbchunks.client.gui.LargeMapScreen;
-import dev.ftb.mods.ftblibrary.ui.input.MouseButton;
 import net.minecraft.MethodsReturnNonnullByDefault;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.renderer.GameRenderer;
@@ -30,7 +28,6 @@ import com.mojang.blaze3d.vertex.VertexFormat;
 import dev.ftb.mods.ftbchunks.api.FTBChunksAPI;
 import lombok.Getter;
 
-import java.awt.*;
 import java.io.IOException;
 import java.lang.reflect.Array;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -38,7 +35,6 @@ import java.util.concurrent.atomic.AtomicInteger;
 import javax.annotation.ParametersAreNonnullByDefault;
 
 import static com.mojang.blaze3d.vertex.DefaultVertexFormat.POSITION_TEX_COLOR;
-import static dev.ftb.mods.ftbchunks.client.gui.LargeMapScreen.openMap;
 
 @ParametersAreNonnullByDefault
 @MethodsReturnNonnullByDefault
@@ -237,6 +233,5 @@ public class ProspectingTexture extends AbstractTexture {
             }
         });
         mgr.addWaypointAt(pos, "prospect_point" + index.incrementAndGet()).setColor(200);
-
     }
 }
